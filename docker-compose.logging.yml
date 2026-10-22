@@ -1,0 +1,31 @@
+# ===== COMMIT 3: Loki + Promtail =====
+services:
+  loki:
+    image: grafana/loki:3.5.0
+    container_name: library-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    networks: [backend]
+    security_opt: ["no-new-privileges:true"]
+
+  promtail:
+    image: grafana/promtail:3.5.0
+    container_name: library-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_positions:/positions
+    depends_on: [loki]
+    networks: [backend]
+
+  grafana:                      # bổ sung phụ thuộc Loki cho Grafana
+    depends_on: [loki]
+
+volumes:
+  loki_data:
+  promtail_positions:

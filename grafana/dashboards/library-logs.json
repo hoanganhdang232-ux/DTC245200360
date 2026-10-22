@@ -1,0 +1,126 @@
+{
+ "uid": "library-logs",
+ "title": "Library - Logs (Loki)",
+ "tags": [
+  "library"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "10s",
+ "time": {
+  "from": "now-30m",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "logs",
+   "title": "Log Nginx (POST)",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 9
+   },
+   "datasource": {
+    "type": "loki",
+    "uid": "loki"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "{service=\"nginx\"} |= \"POST\"",
+     "datasource": {
+      "type": "loki",
+      "uid": "loki"
+     }
+    }
+   ],
+   "options": {
+    "showTime": true,
+    "wrapLogMessage": true
+   }
+  },
+  {
+   "id": 2,
+   "type": "logs",
+   "title": "Log App - lỗi (status >= 400)",
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 12,
+    "h": 9
+   },
+   "datasource": {
+    "type": "loki",
+    "uid": "loki"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "{service=\"app\"} | json | status >= 400",
+     "datasource": {
+      "type": "loki",
+      "uid": "loki"
+     }
+    }
+   ],
+   "options": {
+    "showTime": true,
+    "wrapLogMessage": true
+   }
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "Số request App theo status / phút",
+   "gridPos": {
+    "x": 0,
+    "y": 9,
+    "w": 12,
+    "h": 9
+   },
+   "datasource": {
+    "type": "loki",
+    "uid": "loki"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (status) (count_over_time({service=\"app\"} | json [1m]))",
+     "datasource": {
+      "type": "loki",
+      "uid": "loki"
+     }
+    }
+   ],
+   "options": {}
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "Log rate theo service",
+   "gridPos": {
+    "x": 12,
+    "y": 9,
+    "w": 12,
+    "h": 9
+   },
+   "datasource": {
+    "type": "loki",
+    "uid": "loki"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (service) (rate({container=~\"library-.*\"}[1m]))",
+     "datasource": {
+      "type": "loki",
+      "uid": "loki"
+     }
+    }
+   ],
+   "options": {}
+  }
+ ]
+}
