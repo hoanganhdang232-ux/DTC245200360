@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quản lý Thư viện</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:0;background:#f4f6f9;color:#222}
+header{background:#1f3a5f;color:#fff;padding:14px 24px}
+main{max-width:1000px;margin:20px auto;padding:0 16px}
+section{background:#fff;border-radius:8px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px #0002}
+h2{margin-top:0}table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;border-bottom:1px solid #eee;text-align:left}
+input,select,button{padding:6px 8px;margin:2px;font-size:14px}button{cursor:pointer}
+.row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+</style></head><body>
+<header><h1 style="margin:0">📚 Hệ thống Quản lý Thư viện</h1></header>
+<main>
+<section><h2>Sách</h2>
+ <div class="row"><input id="bt" placeholder="Tên sách"><input id="ba" placeholder="Tác giả"><input id="bi" placeholder="ISBN"><input id="bc" type="number" value="1" min="1" style="width:70px"><button onclick="addBook()">Thêm</button></div>
+ <table id="books"></table></section>
+<section><h2>Độc giả</h2>
+ <div class="row"><input id="rn" placeholder="Họ tên"><input id="re" placeholder="Email"><input id="rp" placeholder="SĐT"><button onclick="addReader()">Thêm</button></div>
+ <table id="readers"></table></section>
+<section><h2>Mượn / Trả</h2>
+ <div class="row"><select id="lb"></select><select id="lr"></select><input id="ld" type="number" value="14" style="width:70px"> ngày<button onclick="borrow()">Mượn</button></div>
+ <table id="loans"></table></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(u,m='GET',b){const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});
+ if(!r.ok&&r.status!==204){const e=await r.json().catch(()=>({}));alert(e.error||'Lỗi');throw 0}return r.status===204?null:r.json()}
+async function load(){
+ const [b,r,l]=await Promise.all([api('/api/books'),api('/api/readers'),api('/api/loans')]);
+ $('books').innerHTML='<tr><th>ID</th><th>Tên</th><th>Tác giả</th><th>ISBN</th><th>Còn/Tổng</th><th></th></tr>'+b.map(x=>`<tr><td>${x.id}</td><td>${esc(x.title)}</td><td>${esc(x.author)}</td><td>${esc(x.isbn)}</td><td>${x.available}/${x.copies}</td><td><button onclick="del(${x.id})">Xóa</button></td></tr>`).join('');
+ $('readers').innerHTML='<tr><th>ID</th><th>Họ tên</th><th>Email</th><th>SĐT</th></tr>'+r.map(x=>`<tr><td>${x.id}</td><td>${esc(x.name)}</td><td>${esc(x.email)}</td><td>${esc(x.phone)}</td></tr>`).join('');
+ $('lb').innerHTML=b.filter(x=>x.available>0).map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('');
+ $('lr').innerHTML=r.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('');
+ $('loans').innerHTML='<tr><th>ID</th><th>Sách</th><th>Độc giả</th><th>Hạn trả</th><th>Trạng thái</th></tr>'+l.map(x=>`<tr><td>${x.id}</td><td>${esc(x.title)}</td><td>${esc(x.reader)}</td><td>${(x.due_date||'').slice(0,10)}</td><td>${x.returned_at?'Đã trả':`<button onclick="ret(${x.id})">Trả sách</button>`}</td></tr>`).join('')}
+async function addBook(){await api('/api/books','POST',{title:$('bt').value,author:$('ba').value,isbn:$('bi').value,copies:+$('bc').value});load()}
+async function addReader(){await api('/api/readers','POST',{name:$('rn').value,email:$('re').value,phone:$('rp').value});load()}
+async function borrow(){await api('/api/loans','POST',{book_id:+$('lb').value,reader_id:+$('lr').value,days:+$('ld').value});load()}
+async function ret(id){await api(`/api/loans/${id}/return`,'POST');load()}
+async function del(id){if(confirm('Xóa sách?')){await api('/api/books/'+id,'DELETE');load()}}
+load();
+</script></body></html>
